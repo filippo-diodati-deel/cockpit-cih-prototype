@@ -1198,6 +1198,89 @@
     .data-table tbody tr { cursor: pointer; }
     .data-table tbody tr:hover td { background: #fafafa; }
 
+    /* ─── SIGNAL CARD CHECKBOX ────────────────────── */
+    .sig-checkbox {
+      width: 16px; height: 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 3px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+      position: relative;
+      z-index: 2;
+    }
+    .sig-checkbox:hover { border-color: #6b47dc; }
+    .sig-checkbox.checked {
+      background: #6b47dc;
+      border-color: #6b47dc;
+    }
+    .sig-checkbox.checked::after {
+      content: '';
+      display: block;
+      width: 9px; height: 5px;
+      border-left: 1.5px solid #fff;
+      border-bottom: 1.5px solid #fff;
+      transform: rotate(-45deg) translate(1px, -1px);
+    }
+
+    /* Grayed-out completed card */
+    .sig-card-done {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .sig-card-done .sig-checkbox {
+      pointer-events: all; /* still allow undo via checkbox re-click */
+    }
+
+    /* ─── SNACKBAR ─────────────────────────────────── */
+    .snackbar {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1b1b1b;
+      color: #fff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      font-family: var(--font);
+      z-index: 9999;
+      min-width: 280px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .snackbar.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: all;
+    }
+    .snackbar-text { flex: 1; }
+    .snackbar-undo {
+      font-size: 13px; font-weight: 600;
+      color: #a78bfa;
+      background: none; border: none; cursor: pointer;
+      font-family: var(--font);
+      padding: 0;
+      white-space: nowrap;
+    }
+    .snackbar-undo:hover { color: #c4b5fd; }
+    .snackbar-progress {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 3px;
+      background: #6b47dc;
+      border-radius: 0 0 10px 10px;
+      transition: width linear;
+      width: 100%;
+    }
+
     /* ─── MEETING DRAWER SPECIFICS ─────────────── */
     .attendee-cell {
       display: flex;
@@ -1439,6 +1522,32 @@
     .chip-crosssell { background: #c7e2fe; border-color: #5c9be1; color: #1b1b1b; }
     .chip-advocacy  { background: #c2eeb5; border-color: #53a945; color: #1b1b1b; }
     .chip-adoption  { background: #fef9c3; border-color: #ca8a04; color: #1b1b1b; }
+
+    /* ─── DRAG HANDLE ──────────────────────────── */
+    .week-card { position: relative; }
+
+    .drag-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      flex-shrink: 0;
+      cursor: grab;
+      opacity: 0;
+      transition: opacity 0.15s;
+      color: #bebebe;
+      align-self: stretch;
+    }
+    .week-card:hover .drag-handle { opacity: 1; }
+    .drag-handle:active { cursor: grabbing; }
+
+    .week-card.dragging {
+      opacity: 0.35;
+      background: #f5f3ff !important;
+      border-color: #c4b5fd !important;
+    }
+    .week-card.drag-over-top { box-shadow: 0 -3px 0 0 #6b47dc; }
+    .week-card.drag-over-bottom { box-shadow: 0 3px 0 0 #6b47dc; }
   </style>
 </head>
 <body>
@@ -1586,7 +1695,8 @@
     <!-- Page header -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">Cockpit</h1>
+        <h1 class="page-title">Good morning, Alicia</h1>
+        <p class="page-subtitle" style="margin-top:4px;margin-bottom:0;">Monday, May 25 · Here's everything that needs your focus today</p>
       </div>
       <div class="header-actions">
         <button class="btn-outline">
@@ -1599,20 +1709,14 @@
       </div>
     </div>
 
-    <p class="page-subtitle">View what needs your attention today</p>
-
     <!-- Tabs -->
-    <div class="tabs">
+    <div class="tabs" style="margin-bottom:20px;">
       <button class="tab active" onclick="switchTab('home', this)">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10L10 3l7 7v7H13v-5H7v5H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
         Home
       </button>
-      <button class="tab" onclick="switchTab('meeting-prep', this)">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 10a3 3 0 100-6 3 3 0 000 6zM13 10a3 3 0 100-6 3 3 0 000 6zM4 17c0-2.2 1.8-4 4-4h4c2.2 0 4 1.8 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Meeting prep
-      </button>
       <button class="tab" onclick="switchTab('accounts', this)">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 7h12M4 10h12M4 13h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 8h14" stroke="currentColor" stroke-width="1.5"/></svg>
         Accounts
       </button>
       <button class="tab" onclick="switchTab('signals', this)">
@@ -1624,351 +1728,291 @@
     <!-- ═══ HOME TAB ══════════════════════════════════ -->
     <div id="tab-home" class="tab-panel active">
 
-    <!-- AI Insights Card -->
-    <div class="ai-card">
-      <div class="ai-card-inner ai-card-title">
-        <div class="ai-date-block">
-          <div class="ai-date-number">23</div>
-          <div class="ai-date-text">
-            <h2>Monday</h2>
-            <p>May 2026</p>
+      <!-- 4 Stat tiles -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+        <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:12px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;color:var(--text-desc);">Overdue</span>
+            <span style="font-size:11px;font-weight:500;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:20px;padding:2px 8px;">Last 24h</span>
           </div>
+          <span style="font-size:20px;font-weight:500;color:var(--text-title);line-height:32px;">4</span>
         </div>
-        <div class="ai-meta">Insights from last 7 days · Updated daily</div>
-      </div>
-
-      <div class="ai-card-inner ai-body">
-        <!-- AI notes -->
-        <div class="ai-notes">
-          <ul>
-            <li>Relevant number of support tickets raised from conversations on Background Check. Strong engagement with global payroll</li>
-            <li>Team actively exploring expansion into Brazil and India</li>
-            <li>Relevant number of support tickets raised from conversations on Background Check</li>
-          </ul>
-          <div class="ai-notes-scroll">
-            <div class="ai-notes-thumb"></div>
+        <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:12px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:12px;color:var(--text-desc);">Due today</span>
+            <span style="font-size:11px;font-weight:500;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;padding:2px 8px;">Last 24h</span>
           </div>
+          <span style="font-size:20px;font-weight:500;color:var(--text-title);line-height:32px;">325</span>
         </div>
-
-        <!-- Stats -->
-        <div class="ai-stats">
-          <div class="ai-stats-row">
-            <div class="stat-card">
-              <div class="stat-label">Overdue tasks</div>
-              <div class="stat-value">
-                <span class="stat-num red">2</span>
-                <span class="stat-sub red">Critical</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Today's meetings</div>
-              <div class="stat-value">
-                <span class="stat-num">12</span>
-                <span class="stat-sub">meetings</span>
-              </div>
-            </div>
-          </div>
-          <div class="ai-stats-row">
-            <div class="stat-card">
-              <div class="stat-label">Open this week</div>
-              <div class="stat-value">
-                <span class="stat-num">5</span>
-                <span class="stat-sub">tasks for this week</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Book value this week</div>
-              <div class="stat-value">
-                <span class="stat-num">$2.98M</span>
-                <span class="stat-sub">ARR</span>
-              </div>
-            </div>
-          </div>
+        <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:12px 16px;">
+          <div style="margin-bottom:10px;"><span style="font-size:12px;color:var(--text-desc);">Open this week</span></div>
+          <span style="font-size:20px;font-weight:500;color:var(--text-title);line-height:32px;">12</span>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:12px 16px;">
+          <div style="margin-bottom:10px;"><span style="font-size:12px;color:var(--text-desc);">Pending trainings</span></div>
+          <span style="font-size:20px;font-weight:500;color:var(--text-title);line-height:32px;">2</span>
         </div>
       </div>
 
-      <!-- Show more -->
-      <div class="ai-card-inner show-more-row">
-        <div class="show-more-line"></div>
-        <button class="show-more-btn">
-          Show more
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="show-more-line"></div>
+      <!-- Two-column signals -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+
+        <!-- Urgent today -->
+        <div style="background:linear-gradient(160deg,#ede9fe 0%,rgba(255,255,255,0) 60%),#fff;border:1px solid var(--border-cell);border-radius:16px;padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <span style="font-size:15px;font-weight:600;color:var(--text-title);">Urgent today</span>
+            <span style="font-size:12px;font-weight:600;background:#e0e7ff;color:#3730a3;border-radius:20px;padding:2px 10px;">7</span>
+          </div>
+          <div style="position:relative;">
+            <div style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px;padding-bottom:48px;">
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span class="stage-chip stage-expansion" style="font-size:11px;padding:2px 8px;">Expansion</span>
+                  <span style="font-size:11px;color:var(--text-desc);">Due in 24h</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">[Account] just raised funding. Great time to connect.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span class="stage-chip stage-health" style="font-size:11px;padding:2px 8px;">Advocacy</span>
+                  <span style="font-size:11px;color:var(--text-desc);">Due in 24h</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">New executive at [Account]. Introduce yourself.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span class="stage-chip" style="font-size:11px;padding:2px 8px;border-color:#3b82f6;color:#1e40af;background:#eff6ff;">Cross-sell</span>
+                  <span style="font-size:11px;color:var(--text-desc);">Due in 24h</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Compliance risk at [Account]. IC flagged as high-risk.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span class="stage-chip stage-adoption" style="font-size:11px;padding:2px 8px;">Adoption</span>
+                  <span style="font-size:11px;color:var(--text-desc);">Due in 24h</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Revenue dropped at [Account]. Find out why.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span class="stage-chip stage-handover" style="font-size:11px;padding:2px 8px;">Handover</span>
+                  <span style="font-size:11px;color:var(--text-desc);">Due in 24h</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Welcome the new admin at [Account]</div>
+                <div style="font-size:12px;color:var(--text-desc);">Atlassian · SA$23,100 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span class="stage-chip" style="font-size:11px;padding:2px 8px;border-color:#ec4899;color:#9d174d;background:#fdf2f8;">Maintenance</span>
+                  <span style="font-size:11px;color:var(--text-desc);">Due in 24h</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Zero employees on GP at [Account]. Call now.</div>
+                <div style="font-size:12px;color:var(--text-desc);">Binance · SA$9,850 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span class="stage-chip stage-at-risk" style="font-size:11px;padding:2px 8px;">At-risk</span>
+                  <span style="font-size:11px;color:var(--text-desc);">Due in 24h</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">[Account] left a low NPS. Reach out today.</div>
+                <div style="font-size:12px;color:var(--text-desc);">Apple Inc. · SA$41,200 MRR</div>
+              </div>
+            </div>
+            </div><!-- end scroll -->
+            <div style="pointer-events:none;position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 80%, rgba(255,255,255,1) 100%);border-radius:0 0 12px 12px;"></div>
+          </div><!-- end relative -->
+        </div>
+
+        <!-- Overdue from previous days -->
+        <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <span style="font-size:15px;font-weight:600;color:var(--text-title);">Overdue from previous days</span>
+            <span style="font-size:12px;font-weight:600;background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 10px;">7</span>
+          </div>
+          <div style="position:relative;">
+            <div style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px;padding-bottom:48px;">
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <span class="stage-chip stage-expansion" style="font-size:11px;padding:2px 8px;">Expansion</span>
+                  <span style="font-size:11px;font-weight:500;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:1px 7px;">Overdue</span>
+                  <span style="font-size:11px;color:var(--text-desc);margin-left:auto;">24 May 2026</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">[Account] is opening an entity. Start the GP conversation.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <span class="stage-chip stage-expansion" style="font-size:11px;padding:2px 8px;">Expansion</span>
+                  <span style="font-size:11px;font-weight:500;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:1px 7px;">Overdue</span>
+                  <span style="font-size:11px;color:var(--text-desc);margin-left:auto;">24 May 2026</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Admin left at [Account]. Find their replacement.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <span class="stage-chip stage-expansion" style="font-size:11px;padding:2px 8px;">Expansion</span>
+                  <span style="font-size:11px;font-weight:500;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:1px 7px;">Overdue</span>
+                  <span style="font-size:11px;color:var(--text-desc);margin-left:auto;">24 May 2026</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Zero employees on GP at [Account]. Call now.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <span class="stage-chip stage-expansion" style="font-size:11px;padding:2px 8px;">Expansion</span>
+                  <span style="font-size:11px;font-weight:500;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:1px 7px;">Overdue</span>
+                  <span style="font-size:11px;color:var(--text-desc);margin-left:auto;">24 May 2026</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Headcount shrinking at [Account]. Understand the cause.</div>
+                <div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <span class="stage-chip stage-handover" style="font-size:11px;padding:2px 8px;">Handover</span>
+                  <span style="font-size:11px;font-weight:500;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:1px 7px;">Overdue</span>
+                  <span style="font-size:11px;color:var(--text-desc);margin-left:auto;">22 May 2026</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">EOR quote stalled at [Account]. Check what's blocking.</div>
+                <div style="font-size:12px;color:var(--text-desc);">Atlassian · SA$23,100 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <span class="stage-chip stage-adoption" style="font-size:11px;padding:2px 8px;">Adoption</span>
+                  <span style="font-size:11px;font-weight:500;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:1px 7px;">Overdue</span>
+                  <span style="font-size:11px;color:var(--text-desc);margin-left:auto;">21 May 2026</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Revenue dropped at [Account]. Find out why.</div>
+                <div style="font-size:12px;color:var(--text-desc);">Binance · SA$9,850 MRR</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;" onclick="handleHomeCardClick(this)">
+              <span class="sig-checkbox" onclick="checkCard(this,event)"></span>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+                  <span class="stage-chip stage-at-risk" style="font-size:11px;padding:2px 8px;">At-risk</span>
+                  <span style="font-size:11px;font-weight:500;color:#ef4444;background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:1px 7px;">Overdue</span>
+                  <span style="font-size:11px;color:var(--text-desc);margin-left:auto;">20 May 2026</span>
+                </div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">[Account] left a low NPS. Reach out today.</div>
+                <div style="font-size:12px;color:var(--text-desc);">Apple Inc. · SA$41,200 MRR</div>
+              </div>
+            </div>
+            </div><!-- end scroll -->
+            <div style="pointer-events:none;position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 80%, rgba(255,255,255,1) 100%);border-radius:0 0 12px 12px;"></div>
+          </div><!-- end relative -->
+        </div>
       </div>
-    </div>
 
-    <!-- Signals Section -->
-    <div class="section">
-
-      <!-- Section header: title + view toggle -->
-      <div class="section-header">
-        <div class="section-title-row">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L2 18h16L10 2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 8v4M10 14.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span class="section-title">Urgent today</span>
+      <!-- This week -->
+      <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:20px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 7h14M6 2v2M12 2v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span style="font-size:15px;font-weight:600;color:var(--text-title);">This week</span>
+          </div>
+          <button class="filter-chip" style="font-size:12px;height:32px;">This week<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
-        <div class="view-toggle">
-          <button class="view-toggle-btn active">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-          </button>
-          <button class="view-toggle-btn">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--border-cell);border-radius:12px;overflow:hidden;">
+          <div style="border-right:1px solid var(--border-cell);">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border-cell);display:flex;align-items:center;justify-content:space-between;"><span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-title);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 2L1.5 14h13L8 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Meeting prep</span><span style="font-size:12px;color:var(--text-desc);font-weight:600;">3</span></div>
+            <div style="position:relative;">
+              <div style="padding:8px;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;">
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="border-right:1px solid var(--border-cell);">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border-cell);display:flex;align-items:center;justify-content:space-between;"><span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-title);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 2L1.5 14h13L8 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Follow-up needed</span><span style="font-size:12px;color:var(--text-desc);font-weight:600;">4</span></div>
+            <div style="position:relative;">
+              <div style="padding:8px;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;">
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border-cell);display:flex;align-items:center;justify-content:space-between;"><span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-title);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><path d="M8 2L1.5 14h13L8 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Prospecting</span><span style="font-size:12px;color:var(--text-desc);font-weight:600;">1</span></div>
+            <div style="position:relative;">
+              <div style="padding:8px;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;">
+              <div class="week-card" draggable="true" style="background:#fff;border:1px solid var(--border-cell);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow 0.15s;"><span class="sig-checkbox" onclick="checkCard(this,event)"></span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-desc);margin-bottom:4px;">Mon 25</div><div style="font-size:13px;font-weight:500;color:var(--text-title);margin-bottom:2px;">Welcome the new admin at [Account]</div><div style="font-size:12px;color:var(--text-desc);">BravoNext · SA$17,423 MRR</div></div><div class="drag-handle" draggable="false"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- White card: filter bar + count + table -->
-      <div class="section-card">
-
-        <!-- Filter bar -->
-        <div class="table-controls">
-          <div class="filter-left">
-            <button class="ctrl-icon-btn">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
-            <button class="ctrl-icon-btn">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4.5 8h7M7 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
-            <button class="filter-chip">Signal summary<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            <button class="filter-chip">Strength<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            <button class="filter-chip">stage<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            <button class="filter-chip">Time range<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            <button class="filter-chip">Owner<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          </div>
-          <div class="filter-right">
-            <div class="ctrl-divider"></div>
-            <button class="ctrl-expand-btn">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 2h5v5M7 16H2v-5M2 2l5 5M16 16l-5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
+      <!-- Live stream + Good-to-know -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:20px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 4V3M12 4V3M2 8h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span style="font-size:15px;font-weight:600;color:var(--text-title);">Live stream</span></div>
+          <div style="border:1px solid var(--border-cell);border-radius:10px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;"><div style="width:32px;height:32px;border-radius:6px;background:var(--bg-default);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎓</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Q2 product certification — Deel Engage...</div><div style="font-size:11px;color:var(--text-desc);">45 min · Required</div></div><span style="font-size:12px;color:var(--text-desc);flex-shrink:0;">31/4/2026</span></div>
+            <div style="height:1px;background:var(--border-cell);"></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;"><div style="width:32px;height:32px;border-radius:6px;background:var(--bg-default);display:flex;align-items:center;justify-content:center;flex-shrink:0;">🎓</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Q2 product certification — Deel Engage...</div><div style="font-size:11px;color:var(--text-desc);">45 min · Required</div></div><span style="font-size:12px;color:var(--text-desc);flex-shrink:0;">31/4/2026</span></div>
           </div>
         </div>
-
-        <!-- Total count -->
-        <div class="table-count">Total 128 items</div>
-
-        <!-- Table -->
-        <table class="data-table" style="border-top:1px solid var(--border-cell);">
-          <thead>
-            <tr>
-              <th><div class="cb"></div></th>
-              <th>Signal summary</th>
-              <th>Event date
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-left:2px;"><path d="M6 2v8M3 7l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </th>
-              <th>Strength
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-left:2px;"><path d="M6 2v8M3 7l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </th>
-              <th>Stage</th>
-              <th>Account
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="vertical-align:middle;margin-left:2px;"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/><path d="M7 5v2.5M7 9v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              </th>
-              <th>Account owner</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr onclick="openDrawer('Acme Corp – Champion left flagged at risk','Acme Corp','AT RISK')">
-              <td onclick="event.stopPropagation()"><div class="cb"></div></td>
-              <td><span class="sig-title">Funding received</span></td>
-              <td style="font-size:13px;color:var(--text-desc);">Apr 1st 2024</td>
-              <td><span class="status-chip"><span class="sdot sdot-red"></span>Urgent</span></td>
-              <td><span class="stage-chip stage-adoption">Adoption</span></td>
-              <td><div class="acct-cell"><div class="acct-avatar">AC</div><span class="acct-name">Acme Corp</span></div></td>
-              <td><div class="owner-name">Eithan Sonnino</div><div class="owner-cap">Senior Product Manager</div></td>
-              <td onclick="event.stopPropagation()"><div class="actions-cell"><button class="thumb-btn">&#128077;</button><button class="thumb-btn">&#128078;</button></div></td>
-            </tr>
-            <tr onclick="openDrawer('Globex Inc – Upsell opportunity identified','Globex Inc','EXPANSION')">
-              <td onclick="event.stopPropagation()"><div class="cb"></div></td>
-              <td><span class="sig-title">Renewal upcoming</span></td>
-              <td style="font-size:13px;color:var(--text-desc);">Apr 1st 2024</td>
-              <td><span class="status-chip"><span class="sdot sdot-red"></span>Urgent</span></td>
-              <td><span class="stage-chip stage-adoption" style="border-color:#ec4899;color:#9d174d;background:#fdf2f8;">Maintenance</span></td>
-              <td><div class="acct-cell"><div class="acct-avatar" style="background:#dbeafe;color:#1e40af;">AT</div><span class="acct-name">Atlassian</span></div></td>
-              <td><div class="owner-name">Eithan Sonnino</div><div class="owner-cap">Senior Product Manager</div></td>
-              <td onclick="event.stopPropagation()"><div class="actions-cell"><button class="thumb-btn">&#128077;</button><button class="thumb-btn">&#128078;</button></div></td>
-            </tr>
-            <tr onclick="openDrawer('Initech – Support escalation','Initech','SUPPORT')">
-              <td onclick="event.stopPropagation()"><div class="cb"></div></td>
-              <td><span class="sig-title">Recent funding</span></td>
-              <td style="font-size:13px;color:var(--text-desc);">Apr 1st 2024</td>
-              <td><span class="status-chip"><span class="sdot sdot-red"></span>Urgent</span></td>
-              <td><span class="stage-chip stage-expansion">Expansion</span></td>
-              <td><div class="acct-cell"><div class="acct-avatar" style="background:#fef3c7;color:#92400e;">BI</div><span class="acct-name">Binance</span></div></td>
-              <td><div class="owner-name">Eithan Sonnino</div><div class="owner-cap">Senior Product Manager</div></td>
-              <td onclick="event.stopPropagation()"><div class="actions-cell"><button class="thumb-btn">&#128077;</button><button class="thumb-btn">&#128078;</button></div></td>
-            </tr>
-            <tr onclick="openDrawer('Umbrella Ltd – Renewal in 14 days','Umbrella Ltd','RENEWAL')">
-              <td onclick="event.stopPropagation()"><div class="cb"></div></td>
-              <td><span class="sig-title">Renewal date</span></td>
-              <td style="font-size:13px;color:var(--text-desc);">Apr 1st 2024</td>
-              <td><span class="status-chip"><span class="sdot sdot-red"></span>Urgent</span></td>
-              <td><span class="stage-chip" style="border-color:#3b82f6;color:#1e40af;background:#eff6ff;">Cross-sell</span></td>
-              <td><div class="acct-cell"><div class="acct-avatar" style="background:#f3f4f6;color:#111827;">AI</div><span class="acct-name">Apple Inc.</span></div></td>
-              <td><div class="owner-name">Eithan Sonnino</div><div class="owner-cap">Senior Product Manager</div></td>
-              <td onclick="event.stopPropagation()"><div class="actions-cell"><button class="thumb-btn">&#128077;</button><button class="thumb-btn">&#128078;</button></div></td>
-            </tr>
-            <tr onclick="openDrawer('Massive Dynamics – Health check','Massive Dynamics','HEALTHY')">
-              <td onclick="event.stopPropagation()"><div class="cb"></div></td>
-              <td><span class="sig-title">New admin</span></td>
-              <td style="font-size:13px;color:var(--text-desc);">Apr 1st 2024</td>
-              <td><span class="status-chip"><span class="sdot sdot-red"></span>Urgent</span></td>
-              <td><span class="stage-chip stage-health">Advocacy</span></td>
-              <td><div class="acct-cell"><div class="acct-avatar" style="background:#f0fdf4;color:#166534;">AS</div><span class="acct-name">Astropay</span></div></td>
-              <td><div class="owner-name">Eithan Sonnino</div><div class="owner-cap">Senior Product Manager</div></td>
-              <td onclick="event.stopPropagation()"><div class="actions-cell"><button class="thumb-btn">&#128077;</button><button class="thumb-btn">&#128078;</button></div></td>
-            </tr>
-          </tbody>
-        </table>
-
-      </div><!-- end .section-card -->
-    </div><!-- end .section -->
-
-    <!-- Book Health -->
-    <div class="book-health">
-      <div class="book-health-header">
-        <h2>Book health</h2>
-        <div class="book-health-meta">
-          65 accounts · $2.98M ARR
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div style="background:#fff;border:1px solid var(--border-cell);border-radius:16px;padding:20px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span style="font-size:15px;font-weight:600;color:var(--text-title);">Good-to-know</span></div>
+          <div style="border:1px solid var(--border-cell);border-radius:10px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;"><div style="width:32px;height:32px;border-radius:6px;background:var(--bg-default);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">📋</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Deel Field Services GTM — AI summary now av...</div><div style="font-size:11px;color:var(--text-desc);">45 min · Required</div></div><span style="font-size:12px;color:var(--text-desc);flex-shrink:0;">31/4/2026</span></div>
+            <div style="height:1px;background:var(--border-cell);"></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;"><div style="width:32px;height:32px;border-radius:6px;background:var(--bg-default);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">🎓</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Q2 product certification — Deel Engage...</div><div style="font-size:11px;color:var(--text-desc);">45 min · Required</div></div><span style="font-size:12px;color:var(--text-desc);flex-shrink:0;">31/4/2026</span></div>
+            <div style="height:1px;background:var(--border-cell);"></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;"><div style="width:32px;height:32px;border-radius:6px;background:var(--bg-default);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">📋</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Deel Field Services GTM — AI summary now av...</div><div style="font-size:11px;color:var(--text-desc);">45 min · Required</div></div><span style="font-size:12px;color:var(--text-desc);flex-shrink:0;">31/4/2026</span></div>
+            <div style="height:1px;background:var(--border-cell);"></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;"><div style="width:32px;height:32px;border-radius:6px;background:var(--bg-default);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;">📋</div><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;color:var(--text-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Objection handling — Compliance objections s...</div><div style="font-size:11px;color:var(--text-desc);">45 min · Required</div></div><span style="font-size:12px;color:var(--text-desc);flex-shrink:0;">31/4/2026</span></div>
+          </div>
         </div>
       </div>
-
-      <div class="book-health-body">
-
-        <!-- Book overview panel -->
-        <div class="book-overview">
-          <div class="book-overview-header">
-            Book overview
-            <a href="#" class="view-link">View details</a>
-          </div>
-
-          <div class="donut-wrapper">
-            <svg id="donut-svg" class="donut-svg" viewBox="0 0 200 200"></svg>
-            <div class="donut-center">
-              <div class="num" id="donut-num">45</div>
-              <div class="label" id="donut-label">Companies</div>
-            </div>
-          </div>
-
-          <div class="legend">
-            <div class="legend-row">
-              <div class="legend-item">
-                <span class="legend-dot" style="background:#8b5cf6"></span>
-                <span class="legend-name">Handover</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">17</span>
-              </div>
-              <div class="legend-item" style="padding-left:12px">
-                <span class="legend-dot" style="background:#3b82f6"></span>
-                <span class="legend-name">Cross-sell</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">4</span>
-              </div>
-            </div>
-            <div class="legend-row">
-              <div class="legend-item">
-                <span class="legend-dot" style="background:#f59e0b"></span>
-                <span class="legend-name">Adoption</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">9</span>
-              </div>
-              <div class="legend-item" style="padding-left:12px">
-                <span class="legend-dot" style="background:#ec4899"></span>
-                <span class="legend-name">Advocacy</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">3</span>
-              </div>
-            </div>
-            <div class="legend-row">
-              <div class="legend-item">
-                <span class="legend-dot" style="background:#f9a8d4"></span>
-                <span class="legend-name">Maintenance</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">4</span>
-              </div>
-              <div class="legend-item" style="padding-left:12px">
-                <span class="legend-dot" style="background:#a78bfa"></span>
-                <span class="legend-name">Renewal</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">2</span>
-              </div>
-            </div>
-            <div class="legend-row">
-              <div class="legend-item">
-                <span class="legend-dot" style="background:#fbbf24"></span>
-                <span class="legend-name">Expansion</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">5</span>
-              </div>
-              <div class="legend-item" style="padding-left:12px">
-                <span class="legend-dot" style="background:#f87171"></span>
-                <span class="legend-name">At-risk</span>
-                <span class="legend-dots">...........................................................................</span>
-                <span class="legend-count">1</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Book stats panel -->
-        <div class="book-stats">
-          <h3>Book stats</h3>
-          <div class="stats-grid">
-            <div class="data-highlight">
-              <div class="dh-label">Expansion pipeline</div>
-              <div class="dh-value">
-                <span class="dh-num green">$560</span>
-                <span class="dh-unit green">K</span>
-              </div>
-              <div class="dh-sub">6 accounts</div>
-            </div>
-            <div class="data-highlight">
-              <div class="dh-label">Revenue at risk</div>
-              <div class="dh-value">
-                <span class="dh-num red">$860</span>
-                <span class="dh-unit red">K</span>
-              </div>
-              <div class="dh-sub">4 accounts</div>
-            </div>
-            <div class="data-highlight">
-              <div class="dh-label">Misclassification risk</div>
-              <div class="dh-value">
-                <span class="dh-num">$560</span>
-                <span class="dh-unit gray">K</span>
-              </div>
-              <div class="dh-sub">6 accounts</div>
-            </div>
-            <div class="data-highlight">
-              <div class="dh-label">Renewals</div>
-              <div class="dh-value">
-                <span class="dh-num">$860</span>
-                <span class="dh-unit gray">K</span>
-              </div>
-              <div class="dh-sub">4 accounts</div>
-            </div>
-            <div class="data-highlight">
-              <div class="dh-label">Stuck in pipeline amount</div>
-              <div class="dh-value">
-                <span class="dh-num">$560</span>
-                <span class="dh-unit gray">K</span>
-              </div>
-              <div class="dh-sub">4 accounts</div>
-            </div>
-            <div class="data-highlight">
-              <div class="dh-label">Stale accounts amount</div>
-              <div class="dh-value">
-                <span class="dh-num">$789</span>
-                <span class="dh-unit gray">K</span>
-              </div>
-              <div class="dh-sub">8 accounts</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
 
     </div><!-- end #tab-home -->
+
 
     <!-- ═══ MEETING PREP TAB ══════════════════════════ -->
     <div id="tab-meeting-prep" class="tab-panel">
@@ -2363,6 +2407,103 @@
   </main>
 </div>
 
+<!-- ─── HOME SIGNAL DRAWER ──────────────────────── -->
+<div class="drawer-backdrop" id="home-signal-backdrop" onclick="closeHomeSignalDrawer()"></div>
+<div class="drawer" id="home-signal-drawer">
+  <!-- Header -->
+  <div class="drawer-header">
+    <div class="drawer-header-top">
+      <div class="drawer-title" id="hs-title">[Account] is offboarding 50%+ IC workers. Act now.</div>
+      <button class="drawer-close" onclick="closeHomeSignalDrawer()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="drawer-subtitle">
+      <span id="hs-company">Apple</span>
+      <span id="hs-urgency" class="drawer-chip-at-risk">URGENT</span>
+    </div>
+    <div class="drawer-tabs">
+      <button class="drawer-tab active" onclick="switchHsTab('signal', this)">Signal overview</button>
+      <button class="drawer-tab" onclick="switchHsTab('account', this)">Account overview</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="drawer-body">
+
+    <!-- Signal overview panel -->
+    <div class="drawer-panel active" id="hs-signal-panel">
+
+      <!-- Why this matters -->
+      <div class="drawer-box">
+        <div class="drawer-box-header">Why this matters</div>
+        <div class="drawer-box-body">
+          <p id="hs-why" class="drawer-why-text">Call now. Inform [Manager Name] immediately via Slack. More than half the IC workforce is leaving. Ask the client: is this a business restructuring, end of a project cycle, or are you moving to another provider? Open a BCP before end of day.</p>
+        </div>
+      </div>
+
+      <!-- Recommended actions -->
+      <div class="drawer-box">
+        <div class="drawer-box-header">Recommended actions</div>
+        <div class="drawer-box-body">
+          <div class="action-list" id="hs-actions">
+            <div class="action-item">
+              <div class="action-icon">📅</div>
+              <div class="action-text"><div class="action-title">Schedule exec sync</div><div class="action-caption">Books a 30-min slot on the owner's calendar</div></div>
+              <svg class="action-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="action-item">
+              <div class="action-icon">⚠️</div>
+              <div class="action-text"><div class="action-title">Inform [Manager Name]</div><div class="action-caption">Alert your manager immediately via Slack</div></div>
+              <svg class="action-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="action-item">
+              <div class="action-icon">👥</div>
+              <div class="action-text"><div class="action-title">Loop in Customer Ops</div><div class="action-caption">Add Customer Ops to the account thread</div></div>
+              <svg class="action-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="action-item">
+              <div class="action-icon">📋</div>
+              <div class="action-text"><div class="action-title">Open a BCP</div><div class="action-caption">Create a Business Continuity Plan before end of day</div></div>
+              <svg class="action-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Account overview panel -->
+    <div class="drawer-panel" id="hs-account-panel">
+      <div class="drawer-box">
+        <div class="drawer-box-header">Account details</div>
+        <div class="drawer-box-body" style="padding-top:4px;padding-bottom:4px;">
+          <div class="prop-row"><span class="prop-label">Industry</span><span class="prop-value">Technology</span></div>
+          <div class="prop-row"><span class="prop-label">Health score</span><span class="prop-value">82 / 100</span></div>
+          <div class="prop-row"><span class="prop-label">Stage</span><span class="prop-value" id="hs-acc-stage">Expansion</span></div>
+          <div class="prop-row"><span class="prop-label">MRR</span><span class="prop-value">SA$17,423</span></div>
+          <div class="prop-row"><span class="prop-label">Owner</span><span class="prop-value">Alicia Hernandez</span></div>
+        </div>
+      </div>
+      <div class="drawer-box">
+        <div class="drawer-box-header">Renewal details</div>
+        <div class="drawer-box-body" style="padding-top:4px;padding-bottom:4px;">
+          <div class="prop-row"><span class="prop-label">Renewal date</span><span class="prop-value">Sep 14, 2026</span></div>
+          <div class="prop-row"><span class="prop-label">Contract type</span><span class="prop-value">Enterprise</span></div>
+          <div class="prop-row"><span class="prop-label">Next step</span><span class="prop-value">QBR scheduled</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="drawer-footer">
+    <button class="btn-drawer" onclick="closeHomeSignalDrawer()">Close</button>
+    <button class="btn-drawer btn-drawer-primary">View account profile</button>
+  </div>
+</div>
+
 <!-- ─── MEETING DRAWER ─────────────────────────── -->
 <div class="drawer-backdrop" id="meeting-backdrop" onclick="closeMeetingDrawer()"></div>
 <div class="drawer" id="meeting-drawer">
@@ -2706,6 +2847,227 @@
     document.body.style.overflow = '';
   }
 
+  // ── Checkbox / snackbar logic ───────────────────────────
+  let snackbarTimer = null;
+  let snackbarAnimFrame = null;
+  let pendingCard = null;
+
+  function checkCard(checkbox, event) {
+    event.stopPropagation();
+    const card = checkbox.closest("[onclick*='handleHomeCardClick'], [style*='border-radius:10px;padding:12px 14px']");
+    if (!card) return;
+
+    checkbox.classList.add('checked');
+    card.classList.add('sig-card-done');
+    pendingCard = card;
+
+    const label = card.querySelector('[style*="font-size:13px;font-weight:500"]')?.textContent?.trim()
+                  || 'Signal';
+    showSnackbar(label.slice(0, 40) + (label.length > 40 ? '…' : ''));
+  }
+
+  function showSnackbar(label) {
+    clearTimeout(snackbarTimer);
+    cancelAnimationFrame(snackbarAnimFrame);
+
+    const bar = document.getElementById('snackbar');
+    const prog = document.getElementById('snackbar-progress');
+    const text = document.getElementById('snackbar-text');
+
+    text.textContent = `"${label}" marked as done`;
+    prog.style.transition = 'none';
+    prog.style.width = '100%';
+    bar.classList.add('visible');
+
+    // Force reflow then animate width to 0 over 4s
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        prog.style.transition = 'width 4s linear';
+        prog.style.width = '0%';
+      });
+    });
+
+    snackbarTimer = setTimeout(() => {
+      dismissCard();
+      bar.classList.remove('visible');
+    }, 4000);
+  }
+
+  function undoCardCheck() {
+    clearTimeout(snackbarTimer);
+    if (pendingCard) {
+      pendingCard.classList.remove('sig-card-done');
+      const cb = pendingCard.querySelector('.sig-checkbox');
+      if (cb) cb.classList.remove('checked');
+      pendingCard = null;
+    }
+    document.getElementById('snackbar').classList.remove('visible');
+  }
+
+  function dismissCard() {
+    if (!pendingCard) return;
+    const card = pendingCard;
+    pendingCard = null;
+    card.style.transition = 'opacity 0.3s, max-height 0.35s 0.25s, margin 0.35s 0.25s, padding 0.35s 0.25s';
+    card.style.opacity = '0';
+    card.style.maxHeight = card.offsetHeight + 'px';
+    requestAnimationFrame(() => {
+      card.style.maxHeight = '0';
+      card.style.marginBottom = '0';
+      card.style.padding = '0';
+    });
+    setTimeout(() => card.remove(), 650);
+  }
+
+  // ── Drag-and-drop for This week columns ──────────────
+  let dragSrc = null;
+
+  document.addEventListener('dragstart', e => {
+    const card = e.target.closest('.week-card');
+    if (!card) return;
+    if (!e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+    dragSrc = card;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  });
+
+  document.addEventListener('dragend', e => {
+    document.querySelectorAll('.week-card').forEach(c =>
+      c.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom')
+    );
+    dragSrc = null;
+  });
+
+  document.addEventListener('dragover', e => {
+    const card = e.target.closest('.week-card');
+    if (!card || card === dragSrc) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.week-card').forEach(c =>
+      c.classList.remove('drag-over-top', 'drag-over-bottom')
+    );
+    const rect = card.getBoundingClientRect();
+    card.classList.add(e.clientY < rect.top + rect.height / 2 ? 'drag-over-top' : 'drag-over-bottom');
+  });
+
+  document.addEventListener('dragleave', e => {
+    const card = e.target.closest('.week-card');
+    if (card) card.classList.remove('drag-over-top', 'drag-over-bottom');
+  });
+
+  document.addEventListener('drop', e => {
+    const target = e.target.closest('.week-card');
+    if (!target || !dragSrc || target === dragSrc) return;
+    e.preventDefault();
+    if (target.parentElement !== dragSrc.parentElement) return;
+    const list = target.parentElement;
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    list.insertBefore(dragSrc, before ? target : target.nextSibling);
+    target.classList.remove('drag-over-top', 'drag-over-bottom');
+  });
+
+  function handleHomeCardClick(card) {
+    const stageEl = card.querySelector(".stage-chip");
+    const stage = stageEl ? stageEl.textContent.trim() : "default";
+    const titleEl = card.querySelector("[style*=\"font-size:13px;font-weight:500\"]");
+    const title = titleEl ? titleEl.textContent.trim() : stage + " signal";
+    const companyEl = card.querySelector("[style*=\"font-size:12px;color:var(--text-desc)\"]");
+    const company = companyEl ? companyEl.textContent.split("·")[0].trim() : "Account";
+    const isOverdue = card.querySelector("[style*=\"color:#ef4444\"]") && !card.querySelector("[style*=\"Due in 24h\"]");
+    openHomeSignalDrawer(title, company, stage, isOverdue ? "Overdue" : "URGENT");
+  }
+
+  // Signal data map (display name → {why, actions[]})
+  const signalData = {
+    'expansion': {
+      why: 'Great time to reach out. The company just completed a funding round — new capital means new headcount plans. Open the conversation now about scaling their global team with Deel.',
+      actions: ['Schedule exec sync', 'View account (Side panel)', 'Create opp (Salesforce)']
+    },
+    'advocacy': {
+      why: 'A new executive has joined the account. This is a critical moment — introduce yourself before another vendor does. Share a personalised intro referencing something specific about their company.',
+      actions: ['Send email (Nooks/Gmail)', 'View contacts (Side panel)', 'Log activity (Salesforce)']
+    },
+    'cross-sell': {
+      why: 'An IC worker has been flagged as high-risk misclassification. Walk the client through their compliance exposure and propose converting to EOR or Shield/COR. Frame it as protecting them.',
+      actions: ['Schedule call (Nooks)', 'View account (Side panel)', 'Create opp (Salesforce)']
+    },
+    'adoption': {
+      why: 'GP SaaS revenue dropped more than 30% MoM. Call today — ask directly: platform issues? Evaluating another provider? Check tickets and sentiment before dialling.',
+      actions: ['Schedule call (Nooks)', 'View tickets (Side panel)', 'Create BCP (Workbench)', 'Inform [Manager Name] (Slack)']
+    },
+    'handover': {
+      why: 'A new org admin has been added to the account. Send the welcome email today, review sales notes, and get a kickoff on the calendar this week.',
+      actions: ['Send email (Nooks/Gmail)', 'Schedule call (Google Calendar)', 'View account (Side panel)']
+    },
+    'maintenance': {
+      why: 'Zero employees on GP last month — they may have moved workers to another provider or shut down the entity. Call today and check the side panel for recent contract changes.',
+      actions: ['Schedule call (Nooks)', 'View account (Side panel)', 'Create BCP (Workbench)', 'Inform [Manager Name] (Slack)']
+    },
+    'at-risk': {
+      why: 'The client submitted an NPS score of 6 or below. Check the NPS comment and recent tickets before dialling. Ask what you can do differently. If it is a product issue, open a BCP.',
+      actions: ['Schedule call (Nooks)', 'View tickets (Side panel)', 'Create BCP (Workbench)', 'Loop in Customer Ops (Slack)']
+    },
+    'default': {
+      why: 'Review the account and take immediate action based on the signal type.',
+      actions: ['Schedule call (Nooks)', 'View account (Side panel)']
+    }
+  };
+
+  const actionIcons = {
+    'Schedule': '📅', 'Send email': '✉️', 'View': '👁️',
+    'Create': '📋', 'Inform': '⚠️', 'Loop': '👥', 'Log': '📝'
+  };
+
+  function openHomeSignalDrawer(title, company, stage, urgency) {
+    document.getElementById('hs-title').textContent = title;
+    document.getElementById('hs-company').textContent = company;
+    const urgEl = document.getElementById('hs-urgency');
+    urgEl.textContent = urgency || 'URGENT';
+    urgEl.className = urgency === 'Overdue' ? '' : 'drawer-chip-at-risk';
+    if (urgency === 'Overdue') {
+      urgEl.style.cssText = 'font-size:11px;font-weight:600;color:#ef4444;text-transform:uppercase;';
+    } else {
+      urgEl.style.cssText = '';
+    }
+    document.getElementById('hs-acc-stage').textContent = stage || '—';
+
+    // Load signal-specific content
+    const key = (stage || 'default').toLowerCase().replace(/[^a-z-]/g,'').replace('sell','sell') ;
+    const data = signalData[key] || signalData['default'];
+    document.getElementById('hs-why').textContent = data.why;
+
+    const actEl = document.getElementById('hs-actions');
+    actEl.innerHTML = data.actions.map(a => {
+      const icon = Object.entries(actionIcons).find(([k]) => a.startsWith(k))?.[1] || '📋';
+      return `<div class="action-item">
+        <div class="action-icon">${icon}</div>
+        <div class="action-text"><div class="action-title">${a}</div></div>
+        <svg class="action-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>`;
+    }).join('');
+
+    // Reset to signal tab
+    switchHsTab('signal', document.querySelector('#home-signal-drawer .drawer-tab:first-child'));
+    document.getElementById('home-signal-drawer').classList.add('open');
+    document.getElementById('home-signal-backdrop').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeHomeSignalDrawer() {
+    document.getElementById('home-signal-drawer').classList.remove('open');
+    document.getElementById('home-signal-backdrop').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function switchHsTab(id, btn) {
+    document.querySelectorAll('#home-signal-drawer .drawer-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#home-signal-drawer .drawer-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('hs-' + id + '-panel').classList.add('active');
+  }
+
   function openMeetingDrawer(title, company) {
     document.getElementById('meeting-drawer-title').textContent = title;
     document.getElementById('meeting-drawer-company').textContent = company;
@@ -2733,7 +3095,7 @@
   }
 
   // Keyboard ESC to close
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeMeetingDrawer(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeMeetingDrawer(); closeHomeSignalDrawer(); } });
 
   function switchTab(id, btn) {
     document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
@@ -2852,6 +3214,12 @@
   }
 </script>
 
+<!-- ─── SNACKBAR ──────────────────────────── -->
+<div class="snackbar" id="snackbar">
+  <span class="snackbar-text" id="snackbar-text">Signal marked as done</span>
+  <button class="snackbar-undo" id="snackbar-undo" onclick="undoCardCheck()">Undo</button>
+  <div class="snackbar-progress" id="snackbar-progress"></div>
+</div>
+
 </body>
 </html>
-
